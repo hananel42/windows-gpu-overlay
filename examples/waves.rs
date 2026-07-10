@@ -11,12 +11,6 @@ use real_gpu_app::screen_capture::DxgiScreenCapture;
 // --- קבועי מערכת לכוונון והתאמה אישית (CONFIG CONSTANTS) ---
 // ============================================================
 const MAX_WAVES: usize = 10;          // מספר הגלים המקסימלי שיכולים לרוץ בו-זמנית
-const WAVE_DURATION: f32 = 1.5;       // משך החיים של כל גל בשניות
-const WAVE_SPEED: f32 = 0.7;          // מהירות התפשטות הגל
-const WAVE_THICKNESS: f32 = 0.08;     // עובי חזית הגל
-const WAVE_FREQUENCY: f32 = 60.0;     // תדירות הגלים (צפיפות הסינוס)
-const WAVE_FORCE: f32 = 0.02;         // עוצמת העיוות של הגל
-
 // ============================================================
 // WGSL SHADER SOURCE - תמיכה בריבוי גלים ותיקון יחס מסך
 // ============================================================
@@ -67,7 +61,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         let wave = uniforms.waves[i];
         let dt = uniforms.time - wave.click_time;
 
-        // הגדרות זמנים וקבועים שהועברו מה-Rust (מומלץ להעביר כחלק מהבאפר במידת הצורך)
+
         let duration = 1.5;
         let speed = 0.7;
         let thickness = 0.08;
@@ -165,7 +159,7 @@ impl OverlayGPUApp for ScreenWaveApp {
         // יצירת הבאפר בגודל המדויק של ה-Struct הגדול הכולל את מערך הגלים
         let uniform_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Uniform Buffer"),
-            size: std::mem::size_of::<RippleUniforms>() as u64,
+            size: size_of::<RippleUniforms>() as u64,
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
