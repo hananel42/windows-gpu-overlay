@@ -379,7 +379,7 @@ impl OverlayGPUApp for ScreenWaveApp {
                 .count();
 
             let info_text = format!(
-                "| FPS: {:.0} \n| Frame time:{:.1}ms \n| Active Waves: {}/{} \n|\n|Press [i] to show/hide info.",
+                "| FPS: {:.0} \n| Frame time:{:.1}ms \n| Active Waves: {}/{} \n| [i] hide/show. \n| [ESC] exit",
                 avg_fps, frame_time_ms, active_waves, MAX_WAVES
             );
 
@@ -434,7 +434,7 @@ impl OverlayGPUApp for ScreenWaveApp {
         if self.show_info {
             let mut drawer = self.engine.as_mut().unwrap().drawer(&canvas);
             drawer.draw_text(self.fps_label.as_ref().unwrap());
-            drawer.draw_rect(0, 0, 300, 130, (155, 155, 155, 50).into())
+            drawer.draw_rect(0, 0, 320, 200, (155, 155, 155, 50).into())
         }
     }
 }
