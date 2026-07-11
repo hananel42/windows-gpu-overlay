@@ -1,17 +1,17 @@
 // -------------------
 //  Made using AI.
 // -------------------
+use real_gpu_app::canvas::{Simple2DEngine, Text};
 use real_gpu_app::hooks::{EventResult, MouseButton, OverlayEvent};
+use real_gpu_app::screen_capture::DxgiScreenCapture;
 use real_gpu_app::{Canvas, OverlayContext, OverlayGPUApp, run};
 use std::borrow::Cow;
 use std::time::Instant;
-use real_gpu_app::canvas::{Simple2DEngine, Text};
-use real_gpu_app::screen_capture::DxgiScreenCapture;
 
 // ============================================================
 // --- קבועי מערכת לכוונון והתאמה אישית (CONFIG CONSTANTS) ---
 // ============================================================
-const MAX_WAVES: usize = 10;          // מספר הגלים המקסימלי שיכולים לרוץ בו-זמנית
+const MAX_WAVES: usize = 10; // מספר הגלים המקסימלי שיכולים לרוץ בו-זמנית
 // ============================================================
 // WGSL SHADER SOURCE - תמיכה בריבוי גלים ותיקון יחס מסך
 // ============================================================
@@ -128,7 +128,7 @@ pub struct ScreenWaveApp {
     fps_history: Vec<f32>,
     history_index: usize,
     last_ui_update: Instant,
-    show_info:bool,
+    show_info: bool,
 }
 
 impl ScreenWaveApp {
@@ -142,7 +142,14 @@ impl ScreenWaveApp {
             engine: None,
             fps_label: None,
             // אתחול מערך הגלים עם ערכים שליליים כדי שלא יופעלו מיד
-            waves: vec![WaveData { click_time: -10.0, _pad: 0.0, click_pos: [0.0, 0.0] }; MAX_WAVES],
+            waves: vec![
+                WaveData {
+                    click_time: -10.0,
+                    _pad: 0.0,
+                    click_pos: [0.0, 0.0]
+                };
+                MAX_WAVES
+            ],
             next_wave_index: 0,
             screen_size: [1920.0, 1080.0], // ערך ברירת מחדל, יתעדכן דינמית ב-init
 
@@ -161,8 +168,7 @@ impl OverlayGPUApp for ScreenWaveApp {
         let device = context.device();
         self.screen_size = [context.width() as f32, context.height() as f32];
 
-        let capture = DxgiScreenCapture::new(device)
-            .expect("Critical: DXGI Capture Init Failed");
+        let capture = DxgiScreenCapture::new(device).expect("Critical: DXGI Capture Init Failed");
 
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("Multi-Wave Shader"),
@@ -189,9 +195,32 @@ impl OverlayGPUApp for ScreenWaveApp {
         let bind_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: None,
             entries: &[
-                wgpu::BindGroupLayoutEntry { binding: 0, visibility: wgpu::ShaderStages::FRAGMENT, ty: wgpu::BindingType::Buffer { ty: wgpu::BufferBindingType::Uniform, has_dynamic_offset: false, min_binding_size: None }, count: None },
-                wgpu::BindGroupLayoutEntry { binding: 1, visibility: wgpu::ShaderStages::FRAGMENT, ty: wgpu::BindingType::Texture { sample_type: wgpu::TextureSampleType::Float { filterable: true }, view_dimension: wgpu::TextureViewDimension::D2, multisampled: false }, count: None },
-                wgpu::BindGroupLayoutEntry { binding: 2, visibility: wgpu::ShaderStages::FRAGMENT, ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering), count: None },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Texture {
+                        sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                        view_dimension: wgpu::TextureViewDimension::D2,
+                        multisampled: false,
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 2,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                    count: None,
+                },
             ],
         });
 
@@ -199,16 +228,36 @@ impl OverlayGPUApp for ScreenWaveApp {
             label: None,
             layout: &bind_layout,
             entries: &[
-                wgpu::BindGroupEntry { binding: 0, resource: uniform_buffer.as_entire_binding() },
-                wgpu::BindGroupEntry { binding: 1, resource: wgpu::BindingResource::TextureView(capture.texture_view()) },
-                wgpu::BindGroupEntry { binding: 2, resource: wgpu::BindingResource::Sampler(&sampler) },
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: uniform_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: wgpu::BindingResource::TextureView(capture.texture_view()),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 2,
+                    resource: wgpu::BindingResource::Sampler(&sampler),
+                },
             ],
         });
 
         let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: Some("Wave Pipeline"),
-            layout: Some(&device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor { label: None, bind_group_layouts: &[Some(&bind_layout)], immediate_size: 0 })),
-            vertex: wgpu::VertexState { module: &shader, entry_point: Some("vs_main"), buffers: &[], compilation_options: Default::default() },
+            layout: Some(
+                &device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+                    label: None,
+                    bind_group_layouts: &[Some(&bind_layout)],
+                    immediate_size: 0,
+                }),
+            ),
+            vertex: wgpu::VertexState {
+                module: &shader,
+                entry_point: Some("vs_main"),
+                buffers: &[],
+                compilation_options: Default::default(),
+            },
             fragment: Some(wgpu::FragmentState {
                 module: &shader,
                 entry_point: Some("fs_main"),
@@ -227,7 +276,13 @@ impl OverlayGPUApp for ScreenWaveApp {
         });
 
         self.engine = Some(Simple2DEngine::new(context));
-        self.fps_label = Some(self.engine.as_mut().unwrap().text("\n | FPS: 0  \n | 0.0ms \n | Active Waves: 0 \n | [i] to toggle", 20.0, 20.0, 24.0, (0, 255, 0, 255)));
+        self.fps_label = Some(self.engine.as_mut().unwrap().text(
+            "\n | FPS: 0  \n | 0.0ms \n | Active Waves: 0 \n | [i] to toggle",
+            20.0,
+            20.0,
+            24.0,
+            (0, 255, 0, 255),
+        ));
 
         self.capture = Some(capture);
         self.render_pipeline = Some(render_pipeline);
@@ -237,23 +292,22 @@ impl OverlayGPUApp for ScreenWaveApp {
 
     fn handler(&mut self, context: &mut OverlayContext, event: OverlayEvent) -> EventResult {
         match event {
-            OverlayEvent::KeyDown { vk } => {
-                match vk {
-                    27 => {
-                        context.close().unwrap();
-                        EventResult::Consumed
-                    }
-                    73 => {
-                        self.show_info = !self.show_info;
-                        EventResult::Consumed
-                    }
-                    _ => {EventResult::Propagated}
+            OverlayEvent::KeyDown { vk } => match vk {
+                27 => {
+                    context.close().unwrap();
+                    EventResult::Consumed
                 }
-
+                73 => {
+                    self.show_info = !self.show_info;
+                    EventResult::Consumed
+                }
+                _ => EventResult::Propagated,
             },
             // שימוש באירוע עכבר שמספק קואורדינטות x ו-y של הלחיצה
-            OverlayEvent::MouseDown { button: MouseButton::Left } => {
-                let (x,y) = context.mouse_position();
+            OverlayEvent::MouseDown {
+                button: MouseButton::Left,
+            } => {
+                let (x, y) = context.mouse_position();
                 let current_time = self.start_time.elapsed().as_secs_f32();
 
                 // המרת קואורדינטות מסך פיקסליות לטווח UV של [0.0, 1.0]
@@ -280,7 +334,11 @@ impl OverlayGPUApp for ScreenWaveApp {
         let elapsed = self.start_time.elapsed().as_secs_f32();
 
         // העתקת המערך המקומי לתוך מבנה ה-Uniforms המלא
-        let mut fixed_waves = [WaveData { click_time: -10.0, _pad: 0.0, click_pos: [0.0, 0.0] }; MAX_WAVES];
+        let mut fixed_waves = [WaveData {
+            click_time: -10.0,
+            _pad: 0.0,
+            click_pos: [0.0, 0.0],
+        }; MAX_WAVES];
         fixed_waves.copy_from_slice(&self.waves);
 
         let data = RippleUniforms {
@@ -293,7 +351,7 @@ impl OverlayGPUApp for ScreenWaveApp {
         context.queue().write_buffer(
             self.uniform_buffer.as_ref().unwrap(),
             0,
-            bytemuck::bytes_of(&data)
+            bytemuck::bytes_of(&data),
         );
 
         // --- חישוב FPS חכם ויציב יותר (ממוצע נע) ---
@@ -314,7 +372,9 @@ impl OverlayGPUApp for ScreenWaveApp {
             };
 
             // ספירת גלים פעילים כרגע על המסך (לפי משך זמן האנימציה שמוגדר כ-1.5 שניות ב-Shader)
-            let active_waves = self.waves.iter()
+            let active_waves = self
+                .waves
+                .iter()
                 .filter(|w| elapsed - w.click_time > 0.0 && elapsed - w.click_time < 1.5)
                 .count();
 
@@ -323,10 +383,10 @@ impl OverlayGPUApp for ScreenWaveApp {
                 avg_fps, frame_time_ms, active_waves, MAX_WAVES
             );
 
-            self.fps_label.as_mut().unwrap().update(
-                self.engine.as_mut().unwrap(),
-                info_text.as_str()
-            );
+            self.fps_label
+                .as_mut()
+                .unwrap()
+                .update(self.engine.as_mut().unwrap(), info_text.as_str());
 
             self.last_ui_update = Instant::now();
         }
@@ -337,7 +397,9 @@ impl OverlayGPUApp for ScreenWaveApp {
             cap.update_and_get_view(canvas.queue);
         }
 
-        let mut encoder = canvas.device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
+        let mut encoder = canvas
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
         {
             let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("Wave Render Pass"),
@@ -346,8 +408,13 @@ impl OverlayGPUApp for ScreenWaveApp {
                     depth_slice: None,
                     resolve_target: None,
                     ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(wgpu::Color { r: 0.0, g: 0.0, b: 0.0, a: 0.0 }),
-                        store: wgpu::StoreOp::Store
+                        load: wgpu::LoadOp::Clear(wgpu::Color {
+                            r: 0.0,
+                            g: 0.0,
+                            b: 0.0,
+                            a: 0.0,
+                        }),
+                        store: wgpu::StoreOp::Store,
                     },
                 })],
                 depth_stencil_attachment: None,
@@ -367,7 +434,7 @@ impl OverlayGPUApp for ScreenWaveApp {
         if self.show_info {
             let mut drawer = self.engine.as_mut().unwrap().drawer(&canvas);
             drawer.draw_text(self.fps_label.as_ref().unwrap());
-            drawer.draw_rect(0,0,300,130,(155,155,155,50).into())
+            drawer.draw_rect(0, 0, 300, 130, (155, 155, 155, 50).into())
         }
     }
 }

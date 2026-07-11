@@ -3,7 +3,7 @@
 // -------------------
 use real_gpu_app::canvas::{Simple2DEngine, Text};
 use real_gpu_app::hooks::{EventResult, OverlayEvent};
-use real_gpu_app::{run, Canvas, OverlayContext, OverlayGPUApp};
+use real_gpu_app::{Canvas, OverlayContext, OverlayGPUApp, run};
 
 struct SandboxParticle {
     x: f32,
@@ -34,7 +34,6 @@ struct MyApp {
 }
 
 impl OverlayGPUApp for MyApp {
-
     // 1. INIT: אתחול המנוע, החלקיקים ומצב התחלתי
     fn init(&mut self, context: &mut OverlayContext) {
         let mut engine = Simple2DEngine::new(context);
@@ -60,35 +59,43 @@ impl OverlayGPUApp for MyApp {
     fn handler(&mut self, context: &mut OverlayContext, event: OverlayEvent) -> EventResult {
         match event {
             OverlayEvent::KeyDown { vk } => match vk {
-                27 => { // ESC - סגירה
+                27 => {
+                    // ESC - סגירה
                     context.close().unwrap();
                     EventResult::Consumed
                 }
-                32 => { // SPACE - השהייה
+                32 => {
+                    // SPACE - השהייה
                     self.paused = !self.paused;
                     EventResult::Consumed
                 }
-                38 => { // חץ למעלה - הגברת כבידה
+                38 => {
+                    // חץ למעלה - הגברת כבידה
                     self.gravity = (self.gravity + 500.0).min(10000.0);
                     EventResult::Consumed
                 }
-                40 => { // חץ למטה - החלשת כבידה
+                40 => {
+                    // חץ למטה - החלשת כבידה
                     self.gravity = (self.gravity - 500.0).max(-2000.0);
                     EventResult::Consumed
                 }
-                37 => { // חץ שמאלה - הזזת הליבה שמאלה
+                37 => {
+                    // חץ שמאלה - הזזת הליבה שמאלה
                     self.well_x -= 30.0;
                     EventResult::Consumed
                 }
-                39 => { // חץ ימינה - הזזת הליבה ימינה
+                39 => {
+                    // חץ ימינה - הזזת הליבה ימינה
                     self.well_x += 30.0;
                     EventResult::Consumed
                 }
-                82 => { // R - איפוס מיקומי חלקיקים
+                82 => {
+                    // R - איפוס מיקומי חלקיקים
                     self.reset_particles(context.width() as f32, context.height() as f32);
                     EventResult::Consumed
                 }
-                67 => { // C - החלפת פלטת צבעים
+                67 => {
+                    // C - החלפת פלטת צבעים
                     self.color_scheme = (self.color_scheme + 1) % 3;
                     self.update_particle_colors();
                     EventResult::Consumed
@@ -116,12 +123,19 @@ impl OverlayGPUApp for MyApp {
             self.current_fps,
             self.particles.len(),
             self.gravity,
-            match self.color_scheme { 0 => "Fire", 1 => "Neon", _ => "Ice" },
+            match self.color_scheme {
+                0 => "Fire",
+                1 => "Neon",
+                _ => "Ice",
+            },
             if self.paused { "PAUSED" } else { "RUNNING" }
         );
 
         let engine_mut = self.engine.as_mut().unwrap();
-        self.status_text.as_mut().unwrap().update(engine_mut, &status_string);
+        self.status_text
+            .as_mut()
+            .unwrap()
+            .update(engine_mut, &status_string);
 
         // ג) אנימציית סיבוב ופעימה של הליבה הגרפית
         self.pulse_timer += delta * 5.0;
@@ -155,10 +169,18 @@ impl OverlayGPUApp for MyApp {
                 p.y += p.vy * delta * 60.0;
 
                 // החזרת חלקיקים שבורחים מהמסך מהצד השני (Screen Wrapping)
-                if p.x < 0.0 { p.x = width; }
-                if p.x > width { p.x = 0.0; }
-                if p.y < 0.0 { p.y = height; }
-                if p.y > height { p.y = 0.0; }
+                if p.x < 0.0 {
+                    p.x = width;
+                }
+                if p.x > width {
+                    p.x = 0.0;
+                }
+                if p.y < 0.0 {
+                    p.y = height;
+                }
+                if p.y > height {
+                    p.y = 0.0;
+                }
             }
         }
     }
@@ -177,9 +199,15 @@ impl OverlayGPUApp for MyApp {
             0 => (255.0, 100.0, 0.0, 150.0), // אש
             1 => (255.0, 0.0, 255.0, 150.0), // ניאון
             _ => (0.0, 200.0, 255.0, 150.0), // קרח
-        }.into();
+        }
+        .into();
 
-        drawer.draw_circle(self.well_x as i32, self.well_y as i32, core_pulse_radius, core_color);
+        drawer.draw_circle(
+            self.well_x as i32,
+            self.well_y as i32,
+            core_pulse_radius,
+            core_color,
+        );
 
         // חישוב קודקודי משולש מסתובב בתוך הליבה
         let tri_size = 15.0;
@@ -210,7 +238,9 @@ impl OverlayGPUApp for MyApp {
 
     // 5. SHUTDOWN: בדיקת שלב סגירת האפליקציה וניקוי המשאבים
     fn shutdown(&mut self, _context: &mut OverlayContext) {
-        println!("[API TEST] Shutdown called. Releasing resources, saving configuration... Goodbye!");
+        println!(
+            "[API TEST] Shutdown called. Releasing resources, saving configuration... Goodbye!"
+        );
     }
 }
 
@@ -237,7 +267,7 @@ impl MyApp {
     fn update_particle_colors(&mut self) {
         for (i, p) in self.particles.iter_mut().enumerate() {
             p.base_color = match self.color_scheme {
-                0 => (255.0, 50.0 + (i % 150) as f32, 0.0), // פלטת אש
+                0 => (255.0, 50.0 + (i % 150) as f32, 0.0),  // פלטת אש
                 1 => (50.0 + (i % 200) as f32, 255.0, 50.0), // פלטת ניאון
                 _ => (0.0, 150.0 + (i % 100) as f32, 255.0), // פלטת קרח
             };

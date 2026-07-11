@@ -3,8 +3,7 @@ use glyphon::Shaping;
 use wgpu::util::DeviceExt;
 use wgpu::{Device, Queue, TextureView};
 
-
-const MAX_VERTICES:usize = 80_000;
+const MAX_VERTICES: usize = 80_000;
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct Vertex {
@@ -154,7 +153,6 @@ impl Simple2DEngine {
             cache: None,
             multiview_mask: None,
         });
-
 
         let buffer_size = (MAX_VERTICES * std::mem::size_of::<Vertex>()) as wgpu::BufferAddress;
 
@@ -805,7 +803,7 @@ impl<'a, 'b> Drawer<'a, 'b> {
         });
     }
 
-    fn ensure_capacity(&mut self,required_vertices:usize){
+    fn ensure_capacity(&mut self, required_vertices: usize) {
         if self.vertexes.len() + required_vertices > MAX_VERTICES {
             self.flush();
         }
@@ -882,8 +880,6 @@ impl<'a, 'b> Drawer<'a, 'b> {
 
         self.vertexes.clear();
     }
-
-
 }
 
 impl Drop for Drawer<'_, '_> {
