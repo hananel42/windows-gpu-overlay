@@ -5,6 +5,7 @@ use real_gpu_app::hooks::{EventResult, MouseButton, OverlayEvent};
 use real_gpu_app::{Canvas, OverlayContext, OverlayGPUApp, run};
 use std::borrow::Cow;
 use std::time::Instant;
+use real_gpu_app::canvas::{Simple2DEngine, Text};
 use real_gpu_app::screen_capture::DxgiScreenCapture;
 
 // ============================================================
@@ -118,10 +119,16 @@ pub struct ScreenWaveApp {
     bind_group: Option<wgpu::BindGroup>,
     uniform_buffer: Option<wgpu::Buffer>,
     start_time: Instant,
-
+    engine: Option<Simple2DEngine>,
+    fps_label: Option<Text>,
     waves: Vec<WaveData>,
     next_wave_index: usize,
     screen_size: [f32; 2],
+    // משתנים חדשים לניהול וחישוב ה-FPS
+    fps_history: Vec<f32>,
+    history_index: usize,
+    last_ui_update: Instant,
+    show_info:bool,
 }
 
 impl ScreenWaveApp {
@@ -132,10 +139,18 @@ impl ScreenWaveApp {
             bind_group: None,
             uniform_buffer: None,
             start_time: Instant::now(),
+            engine: None,
+            fps_label: None,
             // אתחול מערך הגלים עם ערכים שליליים כדי שלא יופעלו מיד
             waves: vec![WaveData { click_time: -10.0, _pad: 0.0, click_pos: [0.0, 0.0] }; MAX_WAVES],
             next_wave_index: 0,
             screen_size: [1920.0, 1080.0], // ערך ברירת מחדל, יתעדכן דינמית ב-init
+
+            // אתחול המשתנים החדשים (מערך היסטוריה בגודל 60 פריימים לקבלת ממוצע יציב)
+            fps_history: vec![0.0; 60],
+            history_index: 0,
+            last_ui_update: Instant::now(),
+            show_info: true,
         }
     }
 }
@@ -145,8 +160,6 @@ impl OverlayGPUApp for ScreenWaveApp {
         context.hide_from_capture(true);
         let device = context.device();
         self.screen_size = [context.width() as f32, context.height() as f32];
-
-
 
         let capture = DxgiScreenCapture::new(device)
             .expect("Critical: DXGI Capture Init Failed");
@@ -213,6 +226,9 @@ impl OverlayGPUApp for ScreenWaveApp {
             cache: None,
         });
 
+        self.engine = Some(Simple2DEngine::new(context));
+        self.fps_label = Some(self.engine.as_mut().unwrap().text("\n | FPS: 0  \n | 0.0ms \n | Active Waves: 0 \n | [i] to toggle", 20.0, 20.0, 24.0, (0, 255, 0, 255)));
+
         self.capture = Some(capture);
         self.render_pipeline = Some(render_pipeline);
         self.bind_group = Some(bind_group);
@@ -222,15 +238,22 @@ impl OverlayGPUApp for ScreenWaveApp {
     fn handler(&mut self, context: &mut OverlayContext, event: OverlayEvent) -> EventResult {
         match event {
             OverlayEvent::KeyDown { vk } => {
-                if vk == 27 {
-                    context.close().unwrap();
-                    return EventResult::Consumed;
+                match vk {
+                    27 => {
+                        context.close().unwrap();
+                        EventResult::Consumed
+                    }
+                    73 => {
+                        self.show_info = !self.show_info;
+                        EventResult::Consumed
+                    }
+                    _ => {EventResult::Propagated}
                 }
-                EventResult::Propagated
+
             },
             // שימוש באירוע עכבר שמספק קואורדינטות x ו-y של הלחיצה
-             OverlayEvent::MouseDown { button: MouseButton::Left } => {
-                 let (x,y) = context.mouse_position();
+            OverlayEvent::MouseDown { button: MouseButton::Left } => {
+                let (x,y) = context.mouse_position();
                 let current_time = self.start_time.elapsed().as_secs_f32();
 
                 // המרת קואורדינטות מסך פיקסליות לטווח UV של [0.0, 1.0]
@@ -247,13 +270,13 @@ impl OverlayGPUApp for ScreenWaveApp {
                 // קידום האינדקס בצורה מחזורית
                 self.next_wave_index = (self.next_wave_index + 1) % MAX_WAVES;
 
-                EventResult::Consumed
+                EventResult::Propagated
             }
             _ => EventResult::Propagated,
         }
     }
 
-    fn update(&mut self, context: &mut OverlayContext, _delta: f32) {
+    fn update(&mut self, context: &mut OverlayContext, delta: f32) {
         let elapsed = self.start_time.elapsed().as_secs_f32();
 
         // העתקת המערך המקומי לתוך מבנה ה-Uniforms המלא
@@ -272,6 +295,41 @@ impl OverlayGPUApp for ScreenWaveApp {
             0,
             bytemuck::bytes_of(&data)
         );
+
+        // --- חישוב FPS חכם ויציב יותר (ממוצע נע) ---
+        if delta > 0.0 {
+            self.fps_history[self.history_index] = delta;
+            self.history_index = (self.history_index + 1) % self.fps_history.len();
+        }
+
+        // עדכון הטקסט על המסך בקצב מתון (כל 100 מילישניות) כדי למנוע ריצוד בעיניים
+        if self.last_ui_update.elapsed().as_millis() >= 100 {
+            let sum_delta: f32 = self.fps_history.iter().sum();
+            let avg_delta = sum_delta / self.fps_history.len() as f32;
+
+            let (avg_fps, frame_time_ms) = if avg_delta > 0.0 {
+                (1.0 / avg_delta, avg_delta * 1000.0)
+            } else {
+                (0.0, 0.0)
+            };
+
+            // ספירת גלים פעילים כרגע על המסך (לפי משך זמן האנימציה שמוגדר כ-1.5 שניות ב-Shader)
+            let active_waves = self.waves.iter()
+                .filter(|w| elapsed - w.click_time > 0.0 && elapsed - w.click_time < 1.5)
+                .count();
+
+            let info_text = format!(
+                "| FPS: {:.0} \n| Frame time:{:.1}ms \n| Active Waves: {}/{} \n|\n|Press [i] to show/hide info.",
+                avg_fps, frame_time_ms, active_waves, MAX_WAVES
+            );
+
+            self.fps_label.as_mut().unwrap().update(
+                self.engine.as_mut().unwrap(),
+                info_text.as_str()
+            );
+
+            self.last_ui_update = Instant::now();
+        }
     }
 
     fn render(&mut self, canvas: Canvas) {
@@ -305,6 +363,12 @@ impl OverlayGPUApp for ScreenWaveApp {
             }
         }
         canvas.queue.submit(std::iter::once(encoder.finish()));
+
+        if self.show_info {
+            let mut drawer = self.engine.as_mut().unwrap().drawer(&canvas);
+            drawer.draw_text(self.fps_label.as_ref().unwrap());
+            drawer.draw_rect(0,0,300,130,(155,155,155,50).into())
+        }
     }
 }
 
