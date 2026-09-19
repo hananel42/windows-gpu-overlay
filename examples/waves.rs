@@ -1,10 +1,10 @@
 // -------------------
 //  Made using AI.
 // -------------------
-use real_gpu_app::canvas::{Simple2DEngine, Text};
-use real_gpu_app::hooks::{EventResult, MouseButton, OverlayEvent};
-use real_gpu_app::screen_capture::DxgiScreenCapture;
-use real_gpu_app::{Canvas, OverlayContext, OverlayGPUApp, run};
+use windows_gpu_overlay::canvas::{Simple2DEngine, Text};
+use windows_gpu_overlay::hooks::{EventResult, MouseButton, OverlayEvent};
+use windows_gpu_overlay::screen_capture::DxgiScreenCapture;
+use windows_gpu_overlay::{Canvas, OverlayContext, OverlayGPUApp, run};
 use std::borrow::Cow;
 use std::time::Instant;
 

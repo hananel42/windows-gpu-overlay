@@ -1,9 +1,9 @@
 // -------------------
 //  Made using AI.
 // -------------------
-use real_gpu_app::canvas::{Simple2DEngine, Text};
-use real_gpu_app::hooks::{EventResult, OverlayEvent};
-use real_gpu_app::{Canvas, OverlayContext, OverlayGPUApp, run};
+use windows_gpu_overlay::canvas::{Simple2DEngine, Text};
+use windows_gpu_overlay::hooks::{EventResult, OverlayEvent};
+use windows_gpu_overlay::{Canvas, OverlayContext, OverlayGPUApp, run};
 
 struct SandboxParticle {
     x: f32,
