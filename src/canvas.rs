@@ -29,8 +29,10 @@ pub struct Canvas<'a> {
     pub height: i32,
 }
 
+#[allow(unused)]
 pub struct Simple2DEngine {
     pipeline: wgpu::RenderPipeline,
+
     layout: wgpu::PipelineLayout,
     shader: wgpu::ShaderModule,
     buffer: wgpu::Buffer,
@@ -110,7 +112,7 @@ impl Simple2DEngine {
                 compilation_options: Default::default(),
                 // במקום כל המערך הידני, wgpu מציעה קיצור דרך מובנה:
                 buffers: &[Option::from(wgpu::VertexBufferLayout {
-                    array_stride: std::mem::size_of::<Vertex>() as wgpu::BufferAddress,
+                    array_stride: size_of::<Vertex>() as wgpu::BufferAddress,
                     step_mode: wgpu::VertexStepMode::Vertex,
                     attributes: &wgpu::vertex_attr_array![
                         0 => Float32x2, // position
@@ -154,7 +156,7 @@ impl Simple2DEngine {
             multiview_mask: None,
         });
 
-        let buffer_size = (MAX_VERTICES * std::mem::size_of::<Vertex>()) as wgpu::BufferAddress;
+        let buffer_size = (MAX_VERTICES * size_of::<Vertex>()) as wgpu::BufferAddress;
 
         let buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Canvas Vertex Buffer"),
@@ -218,7 +220,7 @@ impl Simple2DEngine {
                 compilation_options: Default::default(),
                 // מבנה קודקוד פשוט של תמונה: רק מיקום (vec2) ו-UV (vec2)
                 buffers: &[Option::from(wgpu::VertexBufferLayout {
-                    array_stride: (std::mem::size_of::<f32>() * 4) as wgpu::BufferAddress, // 4 פלוטים לקודקוד
+                    array_stride: (size_of::<f32>() * 4) as wgpu::BufferAddress, // 4 פלוטים לקודקוד
                     step_mode: wgpu::VertexStepMode::Vertex,
                     attributes: &wgpu::vertex_attr_array![
                         0 => Float32x2, // position
@@ -254,7 +256,7 @@ impl Simple2DEngine {
         // 5. באפר קודקודים קטן וייעודי לתמונות (מקום ל-6 קודקודים שמייצרים מלבן תמונה)
         let image_vertex_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Canvas Image Vertex Buffer"),
-            size: (6 * std::mem::size_of::<f32>() * 4) as wgpu::BufferAddress,
+            size: (6 * size_of::<f32>() * 4) as wgpu::BufferAddress,
             usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
@@ -412,7 +414,7 @@ impl Simple2DEngine {
         let attrs = glyphon::Attrs::new().family(glyphon::Family::SansSerif);
 
         // ריצה חד פעמית של ה-Shaping באתחול!
-        buffer.set_text(content, &attrs, glyphon::Shaping::Advanced, None);
+        buffer.set_text(content, &attrs, Shaping::Advanced, None);
         buffer.shape_until_scroll(&mut self.font_system, false);
         let (r, g, b, a) = color;
         let color = glyphon::Color::rgba(r, g, b, a);
@@ -449,7 +451,7 @@ impl Text {
     pub fn update(&mut self, engine: &mut Simple2DEngine, new_content: &str) {
         let attrs = glyphon::Attrs::new().family(glyphon::Family::SansSerif);
         self.buffer
-            .set_text(new_content, &attrs, glyphon::Shaping::Advanced, None);
+            .set_text(new_content, &attrs, Shaping::Advanced, None);
         self.buffer
             .shape_until_scroll(&mut engine.font_system, false);
     }

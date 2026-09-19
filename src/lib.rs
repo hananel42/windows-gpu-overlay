@@ -5,7 +5,7 @@ pub mod screen_capture;
 use std::mem::zeroed;
 use std::time::Instant;
 
-use wgpu::{CurrentSurfaceTexture, Device, Queue, Surface, TextureView};
+use wgpu::{CurrentSurfaceTexture, Device, Queue, Surface};
 
 pub use crate::canvas::Canvas;
 use crate::hooks::*;
@@ -50,6 +50,7 @@ pub struct OverlayContext {
     surface: Surface<'static>,
     comp_device: IDCompositionDevice,
     _comp_visual: IDCompositionVisual,
+    #[allow(unused)]
     comp_target: IDCompositionTarget,
     device: Device,
     queue: Queue,

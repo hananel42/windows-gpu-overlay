@@ -1,12 +1,12 @@
 // -------------------
 //  Made using AI.
 // -------------------
+use std::borrow::Cow;
+use std::time::Instant;
 use windows_gpu_overlay::canvas::{Simple2DEngine, Text};
 use windows_gpu_overlay::hooks::{EventResult, MouseButton, OverlayEvent};
 use windows_gpu_overlay::screen_capture::DxgiScreenCapture;
 use windows_gpu_overlay::{Canvas, OverlayContext, OverlayGPUApp, run};
-use std::borrow::Cow;
-use std::time::Instant;
 
 // ============================================================
 // --- קבועי מערכת לכוונון והתאמה אישית (CONFIG CONSTANTS) ---
